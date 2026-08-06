@@ -1,7 +1,11 @@
-// Fetch wrapper for the station API.
-// TODO: someone should type this properly some day.
+// Typed fetch wrapper for the station API with runtime validation.
 
-export async function getData(path: string): Promise<any> {
+import * as validate from './validate';
+import type { Station, TelemetryResponse, CrewResponse, IncidentsResponse } from './types';
+
+type Validator<T> = (value: unknown) => value is T;
+
+export async function getData<T>(path: string, validator: Validator<T>): Promise<T> {
   const url = '/api/' + path + '.json';
   // simulated network latency so loading states are visible
   await new Promise((resolve) => setTimeout(resolve, 200 + Math.random() * 200));
@@ -13,9 +17,25 @@ export async function getData(path: string): Promise<any> {
     throw new Error('Request failed: ' + res.status);
   }
   const data = await res.json();
-  return data as any;
+  if (!validator(data)) {
+    throw new Error(`Invalid response from ${path}: validation failed`);
+  }
+  return data;
 }
 
-export function getDataOrNull(path: string): Promise<any> {
-  return getData(path).catch(() => null);
+// Typed convenience functions for each endpoint
+export function getStation(): Promise<Station> {
+  return getData('station', validate.isStation);
+}
+
+export function getTelemetry(): Promise<TelemetryResponse> {
+  return getData('telemetry', validate.isTelemetryResponse);
+}
+
+export function getCrew(): Promise<CrewResponse> {
+  return getData('crew', validate.isCrewResponse);
+}
+
+export function getIncidents(): Promise<IncidentsResponse> {
+  return getData('incidents', validate.isIncidentsResponse);
 }
