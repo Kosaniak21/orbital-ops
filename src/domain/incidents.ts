@@ -1,14 +1,7 @@
 // Incident severity ranking, filtering, and counting.
 
+import type { Incident } from '../api/types';
 import { COLOR_CRITICAL, COLOR_DEGRADED, COLOR_INFO, COLOR_MUTED } from '../config';
-
-export interface Incident {
-  id: string;
-  title: string;
-  severity: string;
-  resolved: boolean;
-  timestamp: string;
-}
 
 export interface IncidentCounts {
   unresolvedCritical: number;

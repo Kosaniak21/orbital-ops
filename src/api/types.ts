@@ -17,6 +17,8 @@ export type Severity = 'critical' | 'warning' | 'info';
 
 export interface TelemetrySeries {
   points: number[];
+  label?: string;
+  unit?: string;
 }
 
 export interface TelemetryResponse {
@@ -36,6 +38,9 @@ export interface CrewMember {
   shift: string;
   onDuty: boolean;
   sleepHours: number;
+  role?: string;
+  heartRate?: number;
+  missionDay?: number;
 }
 
 export interface CrewResponse {
@@ -50,6 +55,7 @@ export interface Incident {
   severity: Severity;
   resolved: boolean;
   timestamp: string;
+  system?: string;
 }
 
 export interface IncidentsResponse {

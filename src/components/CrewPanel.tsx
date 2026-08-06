@@ -1,39 +1,15 @@
-import { useEffect, useState } from 'react';
-import { getData } from '../api/client';
-
-// Crew roster panel. The fetch logic here was copied from Dashboard,
-// then tweaked to add retries. TelemetryChart and IncidentFeed have
-// their own copies too. They have all drifted apart a little.
+import { getCrew } from '../api/client';
+import type { CrewMember } from '../api/types';
+import { useApiResource } from '../hooks/useApiResource';
+import { COLOR_NOMINAL, COLOR_MUTED } from '../config';
 
 export default function CrewPanel() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [retryCount, setRetryCount] = useState(0);
+  const { data, loading, error } = useApiResource(getCrew);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError('');
-    getData('crew')
-      .then((result) => {
-        if (cancelled) return;
-        setData(result);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        if (retryCount < 3) {
-          setTimeout(() => setRetryCount(retryCount + 1), 1000);
-        } else {
-          setError(String(err && err.message ? err.message : err));
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [retryCount]);
+  const sorted = data?.members.sort((a: CrewMember, b: CrewMember) => {
+    if (a.onDuty !== b.onDuty) return a.onDuty ? -1 : 1;
+    return a.name < b.name ? -1 : 1;
+  });
 
   if (loading) {
     return (
@@ -53,28 +29,22 @@ export default function CrewPanel() {
         <h2>Crew</h2>
         <div className="panel-error">
           <p>⚠ {error}</p>
-          <button onClick={() => setRetryCount(0)}>Retry</button>
         </div>
       </section>
     );
   }
 
-  if (!data) {
+  if (!sorted) {
     return null;
   }
-
-  const sorted = [...data.members].sort((a: any, b: any) => {
-    if (a.onDuty !== b.onDuty) return a.onDuty ? -1 : 1;
-    return a.name < b.name ? -1 : 1;
-  });
 
   return (
     <section className="panel">
       <h2>Crew</h2>
       <ul className="crew-list">
-        {sorted.map((m: any) => (
+        {sorted.map((m) => (
           <li key={m.id} className={m.onDuty ? 'crew-row crew-on' : 'crew-row'}>
-            <span className="crew-dot" style={{ background: m.onDuty ? '#3ddc84' : '#8892a6' }} />
+            <span className="crew-dot" style={{ background: m.onDuty ? COLOR_NOMINAL : COLOR_MUTED }} />
             <div className="crew-main">
               <span className="crew-name">{m.name}</span>
               <span className="crew-role">{m.role} · shift {m.shift}</span>
