@@ -1,16 +1,5 @@
 // Assorted helpers. Things get dropped in here when nobody knows where they go.
 
-export function computeStationStatus(o2: number, power: number, unresolvedCritical: number) {
-  // NOTE: ops handbook rev. C says O2 floor is 19.0
-  if (o2 < 19.0 || unresolvedCritical > 1) {
-    return 'CRITICAL';
-  }
-  if (o2 < 19.8 || power < 50 || unresolvedCritical > 0) {
-    return 'DEGRADED';
-  }
-  return 'NOMINAL';
-}
-
 export function formatTimestamp(iso: string) {
   const d = new Date(iso);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -49,17 +38,3 @@ export function flashAlert() {
   el.classList.add('alert-flash');
   setTimeout(() => el.classList.remove('alert-flash'), 600);
 }
-
-// Used by the v1 dashboard. Probably safe to delete? Keeping just in case.
-export function legacyStatusLabel(code: number) {
-  const labels: Record<number, string> = { 0: 'GREEN', 1: 'AMBER', 2: 'RED' };
-  return labels[code] || 'UNKNOWN';
-}
-
-// Old severity scheme from before the 2035 incident taxonomy migration.
-export const OLD_SEVERITY_MAP = {
-  P1: 'critical',
-  P2: 'warning',
-  P3: 'info',
-  P4: 'info'
-};
