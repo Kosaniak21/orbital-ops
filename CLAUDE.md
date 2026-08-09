@@ -31,27 +31,13 @@ Rules:
 
 ## Conventions
 
-- Reuse before creating.
-- Every concern has one source of truth.
-- Never duplicate logic, types or constants.
-- Validate all external data.
-- Strict TypeScript is required.
-- Keep responsibilities small and focused.
-- Review every implementation before completion.
+- **Single source of truth:** One owner per concern—types, logic, constants, config.
+- **No duplication:** Reuse before creating. If it exists, extend it.
+- **Validation required:** All external data (APIs, JSON, browser APIs) enters validated.
+- **Strict TypeScript:** No `any`, no assertions, imports before types—model the domain.
+- **Components render only:** Business logic → domain; state coordination → hooks; UI → components.
+- **Review before finishing:** Check for duplication, test coverage, missing validation.
 
 ## Skills
 
-Use `.claude/skills/engineering-typescript/SKILL.md`
-for TypeScript, domain models and runtime validation.
-
-Use `.claude/skills/engineering-architecture/SKILL.md`
-for project structure and module design.
-
-Use `.claude/skills/engineering-react/SKILL.md`
-for components, hooks and state management.
-
-Use `.claude/skills/engineering-api/SKILL.md`
-for API clients and external integrations.
-
-Always use `.claude/skills/engineering-review/SKILL.md`
-before considering a task complete.
+Use `.claude/skills/new-widget/SKILL.md` to scaffold dashboard widgets with typed data hooks, pure domain logic, and colocated tests.
