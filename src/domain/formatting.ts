@@ -16,5 +16,5 @@ export function formatIncidentTimestamp(iso: string): string {
 
 export function formatTime(date: Date): string {
   const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
-  return pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+  return pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes()) + ':' + pad(date.getUTCSeconds());
 }
