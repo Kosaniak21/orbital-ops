@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getStation, getTelemetry, getCrew, getIncidents } from '../api/client';
 import { useApiResource } from '../hooks/useApiResource';
+import { useFuelReservesData } from '../hooks/useFuelReservesData';
 import { formatTime } from '../domain/formatting';
 import { computeStatus } from '../domain/stationStatus';
 import { getLatestValue } from '../domain/telemetry';
@@ -23,6 +24,7 @@ export default function Dashboard() {
   }, []);
 
   const { data, loading, error } = useApiResource(fetcher);
+  const { data: fuel } = useFuelReservesData();
 
   useEffect(() => {
     if (data?.telemetry) {
@@ -69,7 +71,7 @@ export default function Dashboard() {
 
       {statusResult.status !== 'NOMINAL' && topIncident && <AlertBanner incident={topIncident} status={statusResult.status} statusColor={statusResult.color} />}
 
-      <TilesGrid station={station} telemetry={telemetry} crew={crew} incidents={incidents} />
+      <TilesGrid station={station} telemetry={telemetry} crew={crew} incidents={incidents} fuel={fuel || undefined} />
     </div>
   );
 }

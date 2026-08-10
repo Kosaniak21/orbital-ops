@@ -63,3 +63,16 @@ export interface IncidentsResponse {
   timestamp: string;
   items: Incident[];
 }
+
+export interface Tank {
+  id: string;
+  type: string;
+  capacityKg: number;
+  currentKg: number;
+}
+
+export interface FuelResponse {
+  updated: string;
+  tanks: Tank[];
+  dailyConsumptionKg: number;
+}

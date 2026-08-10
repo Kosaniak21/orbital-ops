@@ -43,7 +43,6 @@ Read the template reference for code structures and patterns:
 
 - Create `src/hooks/use<WidgetName>Data.ts`.
 - Use the shared `useApiResource` hook for consistent fetch/retry/error handling.
-- Validate API responses with a Zod schema (runtime type safety).
 
 ### Step 5: Create UI Component
 

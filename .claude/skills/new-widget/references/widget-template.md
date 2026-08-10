@@ -6,7 +6,7 @@ This template shows the complete pattern for creating a new dashboard widget fol
 
 ## 1. Domain Logic — Pure, Testable Calculations
 
-**File:** `src/domain/widgets/fuel.ts`
+**File:** `src/domain/fuel.ts`
 
 Pure functions export both types and business logic. No React dependencies. No component-specific formatting (that lives in the component).
 
@@ -14,7 +14,7 @@ Pure functions export both types and business logic. No React dependencies. No c
 // Domain types: what the widget will display
 export interface FuelTank {
   id: string;
-  type: 'hydrazine' | 'cold-gas';
+  type: "hydrazine" | "cold-gas";
   capacityKg: number;
   currentKg: number;
 }
@@ -35,8 +35,14 @@ export interface FuelMetrics {
 
 // Pure calculation functions
 export function calculateFuelMetrics(data: FuelData): FuelMetrics {
-  const totalCapacityKg = data.tanks.reduce((sum, tank) => sum + tank.capacityKg, 0);
-  const totalCurrentKg = data.tanks.reduce((sum, tank) => sum + tank.currentKg, 0);
+  const totalCapacityKg = data.tanks.reduce(
+    (sum, tank) => sum + tank.capacityKg,
+    0,
+  );
+  const totalCurrentKg = data.tanks.reduce(
+    (sum, tank) => sum + tank.currentKg,
+    0,
+  );
   const usagePercentage = Math.round((totalCurrentKg / totalCapacityKg) * 100);
   const daysOfFuelRemaining = totalCurrentKg / data.dailyConsumptionKg;
   const dangerZone = daysOfFuelRemaining < 14;
@@ -51,23 +57,38 @@ export function calculateFuelMetrics(data: FuelData): FuelMetrics {
 }
 
 // Validator: runtime type safety for API responses
-import { z } from 'zod';
-
-const FuelTankSchema = z.object({
-  id: z.string(),
-  type: z.enum(['hydrazine', 'cold-gas']),
-  capacityKg: z.number().positive(),
-  currentKg: z.number().nonnegative(),
-});
-
-export const FuelDataSchema = z.object({
-  updated: z.string().datetime(),
-  tanks: z.array(FuelTankSchema),
-  dailyConsumptionKg: z.number().positive(),
-});
-
 export function validateFuelData(raw: unknown): FuelData {
-  return FuelDataSchema.parse(raw);
+  if (!raw || typeof raw !== "object") throw new Error("Invalid fuel data");
+
+  const data = raw as Record<string, unknown>;
+  if (typeof data.updated !== "string")
+    throw new Error("Missing updated timestamp");
+  if (!Array.isArray(data.tanks)) throw new Error("Missing tanks array");
+  if (
+    typeof data.dailyConsumptionKg !== "number" ||
+    data.dailyConsumptionKg <= 0
+  ) {
+    throw new Error("Invalid daily consumption");
+  }
+
+  const tanks = (data.tanks as unknown[]).map((tank) => {
+    if (!tank || typeof tank !== "object") throw new Error("Invalid tank");
+    const t = tank as Record<string, unknown>;
+    if (typeof t.id !== "string") throw new Error("Tank missing id");
+    if (t.type !== "hydrazine" && t.type !== "cold-gas")
+      throw new Error("Invalid tank type");
+    if (typeof t.capacityKg !== "number" || t.capacityKg <= 0)
+      throw new Error("Invalid capacity");
+    if (typeof t.currentKg !== "number" || t.currentKg < 0)
+      throw new Error("Invalid current kg");
+    return t as FuelTank;
+  });
+
+  return {
+    updated: data.updated,
+    tanks,
+    dailyConsumptionKg: data.dailyConsumptionKg as number,
+  };
 }
 ```
 
@@ -75,21 +96,26 @@ export function validateFuelData(raw: unknown): FuelData {
 
 ## 2. Unit Tests — Coverage for Edge Cases
 
-**File:** `src/domain/widgets/fuel.test.ts`
+**File:** `src/domain/fuel.test.ts`
 
 Colocated with domain logic. Test the math, the validation, and edge cases.
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { calculateFuelMetrics, validateFuelData } from './fuel';
+import { describe, it, expect } from "vitest";
+import { calculateFuelMetrics, validateFuelData } from "./fuel";
 
-describe('Fuel Domain', () => {
-  describe('calculateFuelMetrics', () => {
-    it('computes days of fuel remaining', () => {
+describe("Fuel Domain", () => {
+  describe("calculateFuelMetrics", () => {
+    it("computes days of fuel remaining", () => {
       const data = {
-        updated: '2036-07-11T09:00:00Z',
+        updated: "2036-07-11T09:00:00Z",
         tanks: [
-          { id: 'main-a', type: 'hydrazine' as const, capacityKg: 1200, currentKg: 142 },
+          {
+            id: "main-a",
+            type: "hydrazine" as const,
+            capacityKg: 1200,
+            currentKg: 142,
+          },
         ],
         dailyConsumptionKg: 14.2,
       };
@@ -97,11 +123,16 @@ describe('Fuel Domain', () => {
       expect(metrics.daysOfFuelRemaining).toBe(10.0);
     });
 
-    it('flags danger zone when fuel < 14 days', () => {
+    it("flags danger zone when fuel < 14 days", () => {
       const data = {
-        updated: '2036-07-11T09:00:00Z',
+        updated: "2036-07-11T09:00:00Z",
         tanks: [
-          { id: 'main-a', type: 'hydrazine' as const, capacityKg: 1200, currentKg: 100 },
+          {
+            id: "main-a",
+            type: "hydrazine" as const,
+            capacityKg: 1200,
+            currentKg: 100,
+          },
         ],
         dailyConsumptionKg: 14.2,
       };
@@ -109,12 +140,22 @@ describe('Fuel Domain', () => {
       expect(metrics.dangerZone).toBe(true);
     });
 
-    it('aggregates multiple tanks', () => {
+    it("aggregates multiple tanks", () => {
       const data = {
-        updated: '2036-07-11T09:00:00Z',
+        updated: "2036-07-11T09:00:00Z",
         tanks: [
-          { id: 'main-a', type: 'hydrazine' as const, capacityKg: 1200, currentKg: 800 },
-          { id: 'main-b', type: 'hydrazine' as const, capacityKg: 1200, currentKg: 600 },
+          {
+            id: "main-a",
+            type: "hydrazine" as const,
+            capacityKg: 1200,
+            currentKg: 800,
+          },
+          {
+            id: "main-b",
+            type: "hydrazine" as const,
+            capacityKg: 1200,
+            currentKg: 600,
+          },
         ],
         dailyConsumptionKg: 28.4,
       };
@@ -124,22 +165,24 @@ describe('Fuel Domain', () => {
     });
   });
 
-  describe('validateFuelData', () => {
-    it('accepts valid fuel data', () => {
+  describe("validateFuelData", () => {
+    it("accepts valid fuel data", () => {
       const valid = {
-        updated: '2036-07-11T09:00:00Z',
+        updated: "2036-07-11T09:00:00Z",
         tanks: [
-          { id: 'main-a', type: 'hydrazine', capacityKg: 1200, currentKg: 830 },
+          { id: "main-a", type: "hydrazine", capacityKg: 1200, currentKg: 830 },
         ],
         dailyConsumptionKg: 14.2,
       };
       expect(() => validateFuelData(valid)).not.toThrow();
     });
 
-    it('rejects negative consumption', () => {
+    it("rejects negative consumption", () => {
       const invalid = {
-        updated: '2036-07-11T09:00:00Z',
-        tanks: [{ id: 'main-a', type: 'hydrazine', capacityKg: 1200, currentKg: 830 }],
+        updated: "2036-07-11T09:00:00Z",
+        tanks: [
+          { id: "main-a", type: "hydrazine", capacityKg: 1200, currentKg: 830 },
+        ],
         dailyConsumptionKg: -14.2,
       };
       expect(() => validateFuelData(invalid)).toThrow();
@@ -157,12 +200,12 @@ describe('Fuel Domain', () => {
 Typed hook using the shared `useApiResource` pattern. Validates and transforms API responses.
 
 ```typescript
-import { useApiResource } from './useApiResource';
-import { FuelData, validateFuelData } from '../domain/widgets/fuel';
+import { useApiResource } from "./useApiResource";
+import { FuelData, validateFuelData } from "../domain/fuel";
 
 export function useFuelData() {
   return useApiResource<FuelData>(async () => {
-    const response = await fetch('/api/fuel.json');
+    const response = await fetch("/api/fuel.json");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const raw = await response.json();
     return validateFuelData(raw);
@@ -174,12 +217,12 @@ export function useFuelData() {
 
 ## 4. UI Component — Render Metrics + Status
 
-**File:** `src/components/widgets/FuelWidget.tsx`
+**File:** `src/components/FuelWidget.tsx`
 
 Thin rendering layer. All logic in domain; styling via tile classes (from config).
 
 ```typescript
-import type { FuelMetrics } from '../domain/widgets/fuel';
+import type { FuelMetrics } from '../domain/fuel';
 import { MetricTile } from '../MetricTile';
 import { COLOR_CRITICAL, COLOR_DEGRADED, COLOR_NOMINAL } from '../../config';
 
@@ -217,8 +260,8 @@ Import the metrics calculator and the UI component. Render alongside other tiles
 
 ```typescript
 import { useFuelData } from '../hooks/useFuelData';
-import { calculateFuelMetrics } from '../domain/widgets/fuel';
-import { FuelWidget } from './widgets/FuelWidget';
+import { calculateFuelMetrics } from '../domain/fuel';
+import { FuelWidget } from './FuelWidget';
 
 export function TilesGrid({ station, telemetry, crew, incidents }: Props) {
   // ...existing tile computations...
@@ -249,8 +292,18 @@ Save this file to provide test data.
 {
   "updated": "2036-07-11T09:00:00Z",
   "tanks": [
-    { "id": "main-a", "type": "hydrazine", "capacityKg": 1200, "currentKg": 830 },
-    { "id": "main-b", "type": "hydrazine", "capacityKg": 1200, "currentKg": 764 },
+    {
+      "id": "main-a",
+      "type": "hydrazine",
+      "capacityKg": 1200,
+      "currentKg": 830
+    },
+    {
+      "id": "main-b",
+      "type": "hydrazine",
+      "capacityKg": 1200,
+      "currentKg": 764
+    },
     { "id": "rcs", "type": "cold-gas", "capacityKg": 300, "currentKg": 211 }
   ],
   "dailyConsumptionKg": 14.2
@@ -261,10 +314,10 @@ Save this file to provide test data.
 
 ## Validation Checklist
 
-- [ ] Domain logic in `src/domain/widgets/<name>.ts` (no React)
-- [ ] Unit tests in `src/domain/widgets/<name>.test.ts`
+- [ ] Domain logic in `src/domain/<name>.ts` (no React)
+- [ ] Unit tests in `src/domain/<name>.test.ts`
 - [ ] Typed hook in `src/hooks/use<Name>Data.ts` (uses `useApiResource`)
-- [ ] Component in `src/components/widgets/<Name>Widget.tsx` (uses `MetricTile`)
+- [ ] Component in `src/components/<Name>Widget.tsx` (uses `MetricTile`)
 - [ ] Registered in `TilesGrid.tsx`
 - [ ] API data in `public/api/<name>.json`
 - [ ] `npm run validate` passes

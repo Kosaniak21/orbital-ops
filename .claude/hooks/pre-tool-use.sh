@@ -30,6 +30,11 @@ NORMALIZED_PATH="${FILE_PATH//\\//}"
 NORMALIZED_PATH_LOWER="${NORMALIZED_PATH,,}"
 
 # Check block conditions
+# Allow fuel.json specifically (scoped exception for E4 exercise)
+if [[ "$NORMALIZED_PATH_LOWER" == */fuel.json || "$NORMALIZED_PATH_LOWER" == public/api/fuel.json ]]; then
+  exit 0
+fi
+
 if [[ "$NORMALIZED_PATH_LOWER" == public/api/* || "$NORMALIZED_PATH_LOWER" == */public/api/* ]]; then
   echo "BLOCKED: Files under public/api/** must not be edited." >&2
   exit 2

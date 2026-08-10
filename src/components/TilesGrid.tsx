@@ -1,5 +1,6 @@
-import type { Station, TelemetryResponse, CrewResponse, IncidentsResponse } from '../api/types';
+import type { Station, TelemetryResponse, CrewResponse, IncidentsResponse, FuelResponse } from '../api/types';
 import { MetricTile } from './MetricTile';
+import { FuelReservesWidget } from './widgets/FuelReservesWidget';
 import {
   getLatestValue,
   getO2TrendArrow,
@@ -13,12 +14,14 @@ import {
 import { countIncidents } from '../domain/incidents';
 import { analyzeCrew } from '../domain/crew';
 import { formatIncidentTimestamp } from '../domain/formatting';
+import { calculateFuelMetrics } from '../domain/widgets/fuel-reserves';
 
 interface Props {
   station: Station;
   telemetry: TelemetryResponse;
   crew: CrewResponse;
   incidents: IncidentsResponse;
+  fuel?: FuelResponse;
 }
 
 function computeShiftCounts(members: CrewResponse['members']): Record<string, number> {
@@ -29,61 +32,77 @@ function computeShiftCounts(members: CrewResponse['members']): Record<string, nu
   return counts;
 }
 
-export function TilesGrid({ station, telemetry, crew, incidents }: Props) {
-  const o2Points = telemetry.series.o2.points;
-  const powerPoints = telemetry.series.power.points;
-  const hullTempPoints = telemetry.series.hullTemp.points;
-  const integrityPoints = telemetry.series.hullIntegrity.points;
+function getHullTempTileClass(temp: number): string {
+  return temp > 40 || temp < -30 ? 'tile-warn' : 'tile-ok';
+}
 
-  const latestO2 = getLatestValue(o2Points);
-  const latestPower = getLatestValue(powerPoints);
-  const latestHullTemp = getLatestValue(hullTempPoints);
-  const latestIntegrity = getLatestValue(integrityPoints);
+function getHullIntegrityTileClass(integrity: number): string {
+  return integrity < 98 ? 'tile-bad' : integrity < 99 ? 'tile-warn' : 'tile-ok';
+}
 
-  const o2Trend = getO2TrendArrow(o2Points);
-  const powerTrend = getPowerTrendArrow(powerPoints);
-  const powerAvg = getAverageTelemetry(powerPoints);
-  const powerBudgetPct = getPowerBudgetPercent(latestPower);
+function getIncidentsTileClass(unresolvedCritical: number, unresolvedWarning: number): string {
+  return unresolvedCritical > 0 ? 'tile-bad' : unresolvedWarning > 0 ? 'tile-warn' : 'tile-ok';
+}
 
+function extractTelemetryData(telemetry: TelemetryResponse) {
+  return {
+    latestO2: getLatestValue(telemetry.series.o2.points),
+    latestPower: getLatestValue(telemetry.series.power.points),
+    latestHullTemp: getLatestValue(telemetry.series.hullTemp.points),
+    latestIntegrity: getLatestValue(telemetry.series.hullIntegrity.points),
+    o2Trend: getO2TrendArrow(telemetry.series.o2.points),
+    powerTrend: getPowerTrendArrow(telemetry.series.power.points),
+    powerAvg: getAverageTelemetry(telemetry.series.power.points),
+    powerBudgetPct: getPowerBudgetPercent(getLatestValue(telemetry.series.power.points)),
+  };
+}
+
+export function TilesGrid({ station, telemetry, crew, incidents, fuel }: Props) {
+  const tel = extractTelemetryData(telemetry);
   const incidentCounts = countIncidents(incidents.items, '2036-07-11');
   const crewAnalysis = analyzeCrew(crew.members);
   const resupplyInfo = computeResupplyCountdown(new Date(station.nextResupply), new Date('2036-07-11T09:00:00Z').getTime());
   const shiftCounts = computeShiftCounts(crew.members);
+  const fuelMetrics = fuel ? calculateFuelMetrics(fuel) : null;
+
+  const hullTempClass = getHullTempTileClass(tel.latestHullTemp);
+  const integrityClass = getHullIntegrityTileClass(tel.latestIntegrity);
+  const incidentsClass = getIncidentsTileClass(incidentCounts.unresolvedCritical, incidentCounts.unresolvedWarning);
 
   return (
     <div className="tiles">
       <MetricTile
         label="O2 Level"
-        value={latestO2.toFixed(1)}
+        value={tel.latestO2.toFixed(1)}
         unit="%"
-        trend={o2Trend}
+        trend={tel.o2Trend}
         sub="floor 19.5 · cabin nominal 20.9"
-        tileClass={getO2TileClass(latestO2)}
+        tileClass={getO2TileClass(tel.latestO2)}
       />
 
       <MetricTile
         label="Power Output"
-        value={latestPower}
+        value={tel.latestPower}
         unit="kW"
-        trend={powerTrend}
-        sub={`avg ${powerAvg.toFixed(0)} kW · budget ${powerBudgetPct}%`}
-        tileClass={getPowerTileClass(powerBudgetPct)}
+        trend={tel.powerTrend}
+        sub={`avg ${tel.powerAvg.toFixed(0)} kW · budget ${tel.powerBudgetPct}%`}
+        tileClass={getPowerTileClass(tel.powerBudgetPct)}
       />
 
       <MetricTile
         label="Hull Temp"
-        value={latestHullTemp}
+        value={tel.latestHullTemp}
         unit="°C"
         sub="day/night swing normal"
-        tileClass={latestHullTemp > 40 || latestHullTemp < -30 ? 'tile-warn' : 'tile-ok'}
+        tileClass={hullTempClass}
       />
 
       <MetricTile
         label="Hull Integrity"
-        value={latestIntegrity.toFixed(1)}
+        value={tel.latestIntegrity.toFixed(1)}
         unit="%"
         sub="MMOD shielding rated to 97.0"
-        tileClass={latestIntegrity < 98 ? 'tile-bad' : latestIntegrity < 99 ? 'tile-warn' : 'tile-ok'}
+        tileClass={integrityClass}
       />
 
       <MetricTile
@@ -91,9 +110,7 @@ export function TilesGrid({ station, telemetry, crew, incidents }: Props) {
         value={incidentCounts.unresolvedCritical + incidentCounts.unresolvedWarning}
         unit="open"
         sub={`${incidentCounts.unresolvedCritical} critical · ${incidentCounts.unresolvedWarning} warning · ${incidentCounts.resolvedToday} resolved today`}
-        tileClass={
-          incidentCounts.unresolvedCritical > 0 ? 'tile-bad' : incidentCounts.unresolvedWarning > 0 ? 'tile-warn' : 'tile-ok'
-        }
+        tileClass={incidentsClass}
       />
 
       <MetricTile
@@ -117,6 +134,8 @@ export function TilesGrid({ station, telemetry, crew, incidents }: Props) {
         sub={formatIncidentTimestamp(station.commissioned + 'T00:00:00Z')}
         tileClass="tile-ok"
       />
+
+      {fuelMetrics && <FuelReservesWidget metrics={fuelMetrics} />}
     </div>
   );
 }
