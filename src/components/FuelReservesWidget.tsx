@@ -1,5 +1,5 @@
-import { MetricTile } from '../MetricTile';
-import type { FuelMetrics } from '../../domain/widgets/fuel-reserves';
+import { MetricTile } from "./MetricTile";
+import type { FuelMetrics } from "../domain/fuel-reserves";
 
 interface Props {
   metrics: FuelMetrics;

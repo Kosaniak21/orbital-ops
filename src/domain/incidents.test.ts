@@ -66,6 +66,25 @@ describe('incidents', () => {
       expect(result[0].id).toBe('2');
       expect(result[1].id).toBe('1');
     });
+
+    it('handles unknown severity as lowest priority', () => {
+      const incidents = [
+        { id: '1', title: 'A', severity: 'warning', resolved: false, timestamp: '2036-07-11T10:00:00Z' },
+        { id: '2', title: 'B', severity: 'unknown', resolved: false, timestamp: '2036-07-11T11:00:00Z' }
+      ] as Incident[];
+      const result = rankIncidents(incidents);
+      expect(result[0].severity).toBe('warning');
+      expect(result[1].severity).toBe('unknown');
+    });
+
+    it('handles same timestamp (secondary sort)', () => {
+      const incidents: Incident[] = [
+        { id: '1', title: 'A', severity: 'warning', resolved: false, timestamp: '2036-07-11T10:00:00Z' },
+        { id: '2', title: 'B', severity: 'warning', resolved: false, timestamp: '2036-07-11T10:00:00Z' }
+      ];
+      const result = rankIncidents(incidents);
+      expect(result.length).toBe(2);
+    });
   });
 
   describe('getTopIncident', () => {

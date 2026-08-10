@@ -1,6 +1,6 @@
 // Fuel reserves domain: tank calculations, consumption rates, and status thresholds.
 
-import { RESUPPLY_BAD_DAYS, RESUPPLY_WARN_DAYS } from '../../config';
+import { RESUPPLY_BAD_DAYS, RESUPPLY_WARN_DAYS } from '../config';
 
 export interface Tank {
   id: string;

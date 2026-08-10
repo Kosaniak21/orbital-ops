@@ -12,9 +12,9 @@ Use this skill when tasked with creating or scaffolding a new dashboard widget.
 
 All dashboard widgets must adhere to strict separation of concerns:
 
-1. **Pure Domain Logic:** Isolated in `src/domain/widgets/` with zero React dependencies.
-2. **Colocated Unit Tests:** Placed adjacent to domain logic (`src/domain/widgets/<name>.test.ts`).
-3. **UI Component:** Placed in `src/components/widgets/` utilizing the shared typed data hook.
+1. **Pure Domain Logic:** Isolated in `src/domain/` with zero React dependencies.
+2. **Colocated Unit Tests:** Placed adjacent to domain logic (`src/domain/<name>.test.ts`).
+3. **UI Component:** Placed in `src/components/` utilizing the shared typed data hook.
 4. **Grid Registration:** Registered in the dashboard layout configuration.
 
 ---
@@ -31,12 +31,12 @@ Read the template reference for code structures and patterns:
 
 ### Step 2: Create Pure Domain Logic
 
-- Create `src/domain/widgets/<widget-kebab-name>.ts`.
+- Create `src/domain/<widget-kebab-name>.ts`.
 - Export typed data structures and pure calculation/formatting functions.
 
 ### Step 3: Create Colocated Unit Test
 
-- Create `src/domain/widgets/<widget-kebab-name>.test.ts`.
+- Create `src/domain/<widget-kebab-name>.test.ts`.
 - Write unit tests covering domain calculation edge cases.
 
 ### Step 4: Create Typed Data Hook
@@ -46,7 +46,7 @@ Read the template reference for code structures and patterns:
 
 ### Step 5: Create UI Component
 
-- Create `src/components/widgets/<WidgetName>Widget.tsx`.
+- Create `src/components/<WidgetName>Widget.tsx`.
 - Accept computed metrics as props (all logic pre-computed by domain).
 - Use `MetricTile` for consistent styling.
 - Apply status classes (tile-ok, tile-warn, tile-bad) based on domain thresholds.
@@ -62,7 +62,7 @@ Read the template reference for code structures and patterns:
 Execute vitest to verify domain logic:
 
 ```bash
-npx vitest run src/domain/widgets/<widget-kebab-name>.test.ts
+npx vitest run src/domain/<widget-kebab-name>.test.ts
 ```
 
 Then validate the full project:
