@@ -1,6 +1,4 @@
-// Data models for the station API.
-// Only two of the six payloads are typed. The rest travel as `any`.
-// TODO: TelemetryResponse, CrewResponse, CrewMember, IncidentsResponse, Incident
+// Data models for the station API with full type coverage.
 
 export interface Station {
   id: string;
@@ -16,3 +14,65 @@ export interface Station {
 }
 
 export type Severity = 'critical' | 'warning' | 'info';
+
+export interface TelemetrySeries {
+  points: number[];
+  label?: string;
+  unit?: string;
+}
+
+export interface TelemetryResponse {
+  station: string;
+  timestamp: string;
+  series: {
+    o2: TelemetrySeries;
+    power: TelemetrySeries;
+    hullTemp: TelemetrySeries;
+    hullIntegrity: TelemetrySeries;
+  };
+}
+
+export interface CrewMember {
+  id: string;
+  name: string;
+  shift: string;
+  onDuty: boolean;
+  sleepHours: number;
+  role?: string;
+  heartRate?: number;
+  missionDay?: number;
+}
+
+export interface CrewResponse {
+  station: string;
+  timestamp: string;
+  members: CrewMember[];
+}
+
+export interface Incident {
+  id: string;
+  title: string;
+  severity: Severity;
+  resolved: boolean;
+  timestamp: string;
+  system?: string;
+}
+
+export interface IncidentsResponse {
+  station: string;
+  timestamp: string;
+  items: Incident[];
+}
+
+export interface Tank {
+  id: string;
+  type: string;
+  capacityKg: number;
+  currentKg: number;
+}
+
+export interface FuelResponse {
+  updated: string;
+  tanks: Tank[];
+  dailyConsumptionKg: number;
+}
